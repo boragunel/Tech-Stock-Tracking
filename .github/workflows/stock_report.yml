@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance pandas google-api-python-client google-auth-oauthlib google-auth-httplib2
+          pip install yfinance pandas google-api-python-client google-auth-oauthlib google-auth-httplib2 anthropic
 
       - name: Write Google credentials
         env:
@@ -37,4 +37,6 @@ jobs:
           python -c "import os; id=os.environ.get('GOOGLE_DOC_ID',''); open('doc_id.txt','w').write(id) if id else None"
 
       - name: Run stock report
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python create_google_doc.py

@@ -1,4 +1,5 @@
 import os
+import anthropic
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -189,6 +190,72 @@ def fmt_pct(val):
     return f"{val:+.2f}%"
 
 
+def generate_market_report(rows):
+    summary_lines = []
+    for r in rows:
+        summary_lines.append(
+            f"{r['company_name']} ({r['ticker']}): close={r['close_price']}, "
+            f"1D={fmt_pct(r['change_1d_pct'])}, 1W={fmt_pct(r['change_1w_pct'])}, "
+            f"1M={fmt_pct(r['change_1m_pct'])}, 3M={fmt_pct(r['change_3m_pct'])}, "
+            f"1Y={fmt_pct(r['change_1y_pct'])}"
+        )
+    data_text = "\n".join(summary_lines)
+
+    client = anthropic.Anthropic()
+    response = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=1024,
+        thinking={"type": "adaptive"},
+        messages=[{
+            "role": "user",
+            "content": (
+                f"Here is today's tech stock data:\n\n{data_text}\n\n"
+                "Based on these numbers, write a concise ~200 word market analysis report. "
+                "Identify key trends, notable performers (positive and negative), and where "
+                "the market could be heading in the near term. Be direct and insightful."
+            )
+        }]
+    )
+
+    for block in response.content:
+        if block.type == "text":
+            return block.text
+    return ""
+
+
+def append_report_to_doc(docs, doc_id, report_text):
+    doc = docs.documents().get(documentId=doc_id).execute()
+    end_index = doc["body"]["content"][-1]["endIndex"] - 1
+
+    heading = "AI Market Analysis\n"
+    full_text = heading + report_text + "\n"
+
+    insert_requests = [
+        {"insertText": {"location": {"index": end_index}, "text": "\n" + full_text}}
+    ]
+    docs.documents().batchUpdate(documentId=doc_id, body={"requests": insert_requests}).execute()
+
+    # Re-fetch to style the heading
+    doc = docs.documents().get(documentId=doc_id).execute()
+    for elem in doc["body"]["content"]:
+        if "paragraph" in elem:
+            para = elem["paragraph"]
+            text = "".join(r.get("textRun", {}).get("content", "") for r in para.get("elements", []))
+            if "AI Market Analysis" in text:
+                start = elem["startIndex"]
+                end = elem["endIndex"] - 1
+                docs.documents().batchUpdate(documentId=doc_id, body={"requests": [{
+                    "updateParagraphStyle": {
+                        "range": {"startIndex": start, "endIndex": end},
+                        "paragraphStyle": {"namedStyleType": "HEADING_2"},
+                        "fields": "namedStyleType"
+                    }
+                }]}).execute()
+                break
+
+    print("Market report appended.")
+
+
 if __name__ == "__main__":
     print("Authenticating with Google...")
     creds = authenticate()
@@ -203,3 +270,7 @@ if __name__ == "__main__":
     date = data[0]["date"]
     doc_id, _ = get_or_create_doc(docs)
     populate_doc(docs, doc_id, data)
+
+    print("Generating AI market report...")
+    report = generate_market_report(data)
+    append_report_to_doc(docs, doc_id, report)
