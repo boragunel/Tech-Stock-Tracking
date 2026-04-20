@@ -2,8 +2,8 @@ name: Daily Stock Report
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Runs every day at 9:00 AM UTC
-  workflow_dispatch:       # Allows manual trigger from GitHub
+    - cron: '*/5 * * * *'  # Every 5 minutes (for testing — change to '0 9 * * *' for daily)
+  workflow_dispatch:
 
 jobs:
   generate-report:
@@ -23,9 +23,18 @@ jobs:
           pip install yfinance pandas google-api-python-client google-auth-oauthlib google-auth-httplib2
 
       - name: Write Google credentials
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
         run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
-          echo '${{ secrets.GOOGLE_TOKEN }}' > token.json
+          python -c "import os; open('credentials.json','w').write(os.environ['GOOGLE_CREDENTIALS'])"
+          python -c "import os; open('token.json','w').write(os.environ['GOOGLE_TOKEN'])"
+
+      - name: Restore doc ID
+        env:
+          GOOGLE_DOC_ID: ${{ secrets.GOOGLE_DOC_ID }}
+        run: |
+          python -c "import os; id=os.environ.get('GOOGLE_DOC_ID',''); open('doc_id.txt','w').write(id) if id else None"
 
       - name: Run stock report
         run: python create_google_doc.py
