@@ -1,17 +1,16 @@
 # Tech Stock Tracking
 
-An automated system that fetches live data for the top 20 global tech stocks, generates a formatted report in Google Docs, and delivers an AI-powered market analysis to your inbox — every day, fully hands-free.
-
+The code within this repository simply describes a workflow for scraping, analyzing, automating and communicating (through email) the top 20 performing blue chip technology stocks in the world.
 ---
 
-## What It Does
+## Procedures
 
-- Fetches live stock data for 20 major tech companies via Yahoo Finance
-- Tracks open/close prices and % changes over 1D, 1W, 1M, 3M, and 1Y periods
-- Creates and updates a formatted Google Doc with a colour-coded data table
-- Uses **Claude Opus 4.7** to generate a ~200 word AI market analysis report
-- Automatically emails the report link to a configurable list of recipients
-- Runs every day at **9:00 AM UTC** via GitHub Actions — no local machine required
+- Scrape stock data for 20 major tech companies via Yahoo Finance
+- Implements % changes over 1D, 1W, 1M, 3M, and 1Y periods of those stocks
+- Creates/updates a google docs with a table organizing those values (green / red indicators for increase/decrease)
+- Uses Claude Opus 4.7 to generate AI market analysis report (~200)
+- Sends the google docs through your gmail account to recipients (specified in the recipient.json file)
+- Runs every day at 9:00 AM UTC through GitHub Actions (independent of local device)
 
 ---
 
