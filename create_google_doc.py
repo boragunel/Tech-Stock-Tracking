@@ -34,21 +34,24 @@ def get_or_create_doc(docs):
     if os.path.exists(DOC_ID_FILE):
         with open(DOC_ID_FILE) as f:
             doc_id = f.read().strip()
-        print(f"Updating existing document: {doc_id}")
-        # Clear all content
-        doc = docs.documents().get(documentId=doc_id).execute()
-        body = doc["body"]["content"]
-        end_index = body[-1]["endIndex"] - 1
-        if end_index > 1:
-            docs.documents().batchUpdate(documentId=doc_id, body={"requests": [{
-                "deleteContentRange": {
-                    "range": {"startIndex": 1, "endIndex": end_index}
-                }
-            }]}).execute()
-        return doc_id, False
-    else:
-        title = f"Tech Stock Report"
-        doc = docs.documents().create(body={"title": title}).execute()
+        try:
+            doc = docs.documents().get(documentId=doc_id).execute()
+            print(f"Updating existing document: {doc_id}")
+            body = doc["body"]["content"]
+            end_index = body[-1]["endIndex"] - 1
+            if end_index > 1:
+                docs.documents().batchUpdate(documentId=doc_id, body={"requests": [{
+                    "deleteContentRange": {
+                        "range": {"startIndex": 1, "endIndex": end_index}
+                    }
+                }]}).execute()
+            return doc_id, False
+        except Exception:
+            print("Saved document not found — creating a new one.")
+            os.remove(DOC_ID_FILE)
+
+    title = "Tech Stock Report"
+    doc = docs.documents().create(body={"title": title}).execute()
         doc_id = doc["documentId"]
         with open(DOC_ID_FILE, "w") as f:
             f.write(doc_id)
