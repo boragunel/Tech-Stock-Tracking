@@ -52,11 +52,11 @@ def get_or_create_doc(docs):
 
     title = "Tech Stock Report"
     doc = docs.documents().create(body={"title": title}).execute()
-        doc_id = doc["documentId"]
-        with open(DOC_ID_FILE, "w") as f:
-            f.write(doc_id)
-        print(f"Created new document: {doc_id}")
-        return doc_id, True
+    doc_id = doc["documentId"]
+    with open(DOC_ID_FILE, "w") as f:
+        f.write(doc_id)
+    print(f"Created new document: {doc_id}")
+    return doc_id, True
 
 
 def populate_doc(docs, doc_id, rows):
