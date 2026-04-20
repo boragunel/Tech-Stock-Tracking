@@ -30,7 +30,7 @@ def authenticate():
     return creds
 
 
-def get_or_create_doc(docs):
+def get_or_create_doc(docs, drive):
     if os.path.exists(DOC_ID_FILE):
         with open(DOC_ID_FILE) as f:
             doc_id = f.read().strip()
@@ -53,6 +53,23 @@ def get_or_create_doc(docs):
     title = "Tech Stock Report"
     doc = docs.documents().create(body={"title": title}).execute()
     doc_id = doc["documentId"]
+
+    # Move doc into 'stock tracking report' folder
+    folder_results = drive.files().list(
+        q="mimeType='application/vnd.google-apps.folder' and name='stock tracking report' and trashed=false",
+        fields="files(id)"
+    ).execute()
+    folders = folder_results.get("files", [])
+    if folders:
+        folder_id = folders[0]["id"]
+        drive.files().update(
+            fileId=doc_id,
+            addParents=folder_id,
+            removeParents="root",
+            fields="id, parents"
+        ).execute()
+        print(f"Moved document to 'stock tracking report' folder.")
+
     with open(DOC_ID_FILE, "w") as f:
         f.write(doc_id)
     print(f"Created new document: {doc_id}")
@@ -263,6 +280,7 @@ if __name__ == "__main__":
     print("Authenticating with Google...")
     creds = authenticate()
     docs = build("docs", "v1", credentials=creds)
+    drive = build("drive", "v3", credentials=creds)
 
     print("Fetching stock data...")
     data = fetch_stock_data()
@@ -271,7 +289,7 @@ if __name__ == "__main__":
         exit(1)
 
     date = data[0]["date"]
-    doc_id, _ = get_or_create_doc(docs)
+    doc_id, _ = get_or_create_doc(docs, drive)
     populate_doc(docs, doc_id, data)
 
     print("Generating AI market report...")
