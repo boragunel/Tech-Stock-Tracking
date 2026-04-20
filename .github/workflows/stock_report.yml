@@ -2,7 +2,7 @@ name: Daily Stock Report
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes (for testing — change to '0 9 * * *' for daily)
+    - cron: '0 9 * * *'  # Every day at 9:00 AM UTC
   workflow_dispatch:
 
 jobs:
