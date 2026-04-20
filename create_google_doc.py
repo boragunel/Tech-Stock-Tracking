@@ -1,5 +1,8 @@
 import os
+import json
+import base64
 import anthropic
+from email.mime.text import MIMEText
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -9,7 +12,8 @@ from fetch_stocks import fetch_stock_data
 
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/gmail.send"
 ]
 
 DOC_ID_FILE = "doc_id.txt"
@@ -276,6 +280,43 @@ def append_report_to_doc(docs, doc_id, report_text):
     print("Market report appended.")
 
 
+def send_email_report(creds, doc_id, date):
+    if not os.path.exists("recipients.json"):
+        print("No recipients.json found, skipping email.")
+        return
+
+    with open("recipients.json") as f:
+        data = json.load(f)
+
+    recipients = data.get("recipients", [])
+    if not recipients:
+        print("No recipients listed, skipping email.")
+        return
+
+    gmail = build("gmail", "v1", credentials=creds)
+    doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+
+    for r in recipients:
+        body = f"""Hi {r['name']},
+
+Your daily Tech Stock Report for {date} is ready.
+
+View it here: {doc_url}
+
+This report includes live price data for 20 major tech stocks and an AI-generated market analysis.
+
+Regards,
+Stock Tracker Bot"""
+
+        message = MIMEText(body)
+        message["to"] = r["email"]
+        message["subject"] = f"Tech Stock Report — {date}"
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        gmail.users().messages().send(userId="me", body={"raw": raw}).execute()
+        print(f"Email sent to {r['email']}")
+
+
 if __name__ == "__main__":
     print("Authenticating with Google...")
     creds = authenticate()
@@ -295,3 +336,6 @@ if __name__ == "__main__":
     print("Generating AI market report...")
     report = generate_market_report(data)
     append_report_to_doc(docs, doc_id, report)
+
+    print("Sending email report...")
+    send_email_report(creds, doc_id, date)
