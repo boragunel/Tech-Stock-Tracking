@@ -40,3 +40,10 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python create_google_doc.py
+
+      - name: Run stock report
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_DOC_ID: ${{ secrets.GOOGLE_DOC_ID }}
+          RECIPIENTS_JSON: ${{ secrets.RECIPIENTS_JSON }}
+        run: python create_google_doc.py
