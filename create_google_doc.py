@@ -35,9 +35,11 @@ def authenticate():
 
 
 def get_or_create_doc(docs, drive):
-    if os.path.exists(DOC_ID_FILE):
+    doc_id = os.environ.get("GOOGLE_DOC_ID")
+    if not doc_id and os.path.exists(DOC_ID_FILE):
         with open(DOC_ID_FILE) as f:
             doc_id = f.read().strip()
+    if doc_id:
         try:
             doc = docs.documents().get(documentId=doc_id).execute()
             print(f"Updating existing document: {doc_id}")
@@ -281,12 +283,15 @@ def append_report_to_doc(docs, doc_id, report_text):
 
 
 def send_email_report(creds, doc_id, date):
-    if not os.path.exists("recipients.json"):
-        print("No recipients.json found, skipping email.")
+    recipients_env = os.environ.get("RECIPIENTS_JSON")
+    if recipients_env:
+        data = json.loads(recipients_env)
+    elif os.path.exists("recipients.json"):
+        with open("recipients.json") as f:
+            data = json.load(f)
+    else:
+        print("No recipients found, skipping email.")
         return
-
-    with open("recipients.json") as f:
-        data = json.load(f)
 
     recipients = data.get("recipients", [])
     if not recipients:
