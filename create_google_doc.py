@@ -233,7 +233,7 @@ def generate_market_report(rows):
 
     client = anthropic.Anthropic()
     response = client.messages.create(
-        model="claude-fable-5",
+        model="claude-opus-4-8",
         max_tokens=1024,
         thinking={"type": "adaptive"},
         messages=[{
